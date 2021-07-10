@@ -10,6 +10,7 @@ import { RegisterNodeDto } from './dto/register-node.dto';
 import { AddBlockDto } from './dto/add-block.dto';
 import { Message } from './entity/message';
 import { ConfigService } from '@nestjs/config';
+import { CreateMessageSignedDto } from './dto/create-message-signed.dto';
 const fs = require('fs');
 const jfe = require('json-file-encrypt');
 const reqPromise = require('request-promise');
@@ -33,7 +34,7 @@ export class MessengerChainService {
   myKey = ec.keyFromPrivate(this.configService.get('PRIVATE_KEY'));
   myWalletAddress = this.myKey.getPublic('hex');
 
-  constructor(private configService: ConfigService) {    
+  constructor(private configService: ConfigService) {
     // INFO: if file exists load blockchain from file else create new blockchain
     this.loadBlockchain();
     if ((this.blockchain?.length ?? 0) === 0) {
@@ -59,7 +60,7 @@ export class MessengerChainService {
   private addNewBlock(newBlock: Block): Block {
     newBlock.previousHash = this.getLatestBlock().hash;
     newBlock.mineBlock(this.difficulty);
-    this.blockchain.push(newBlock); 
+    this.blockchain.push(newBlock);
     this.saveBlockchainIfValid();
     this.notifyBlockAdded(newBlock);
     return newBlock;
@@ -73,7 +74,19 @@ export class MessengerChainService {
       msg.signMessage(this.myKey);
       this.addMessage(msg);
     } catch (error) {
-      console.log(error);      
+      console.log(error);
+      throw error;
+    }
+    return msg;
+  }
+
+  addNewMessageSigned(createMessageSignedDto: CreateMessageSignedDto): Message {
+    const msg = plainToClass(Message, createMessageSignedDto);
+
+    try {
+      this.addMessage(msg);
+    } catch (error) {
+      console.log(error);
       throw error;
     }
     return msg;
@@ -86,7 +99,7 @@ export class MessengerChainService {
    *
    * @returns {boolean}
    */
-   isBlockchainValid(): boolean {
+  isBlockchainValid(): boolean {
     // Check the remaining blocks on the chain to see if there hashes and
     // signatures are correct
     for (let i = 1; i < this.blockchain.length; i++) {
@@ -237,6 +250,8 @@ export class MessengerChainService {
   // INFO: keys
 
   generateKeys(): any {
+    console.log('generate keys');
+
     // Generate a new key pair and convert them to hex-strings
     const key = ec.genKeyPair();
     const publicKey = key.getPublic('hex');
@@ -260,8 +275,8 @@ export class MessengerChainService {
   // INFO: add message
 
   addMessage(message: Message) {
-    if (!message.fromAddress || !message.toAddress) {
-      throw new Error('message must include from and to address');
+    if (!message.fromAddress) {
+      throw new Error('message must include from');
     }
 
     // Verify the message
@@ -335,13 +350,13 @@ export class MessengerChainService {
     // FixMe: experimental -> to review
     let balancePending = 0;
 
-      for (const msg of this.pendingMessages) {
-        if (msg?.fromAddress === address) {
-          balancePending -= msg.amount;
-        }
-        if (msg?.toAddress === address) {
-          balancePending += msg.amount;
-        }
+    for (const msg of this.pendingMessages) {
+      if (msg?.fromAddress === address) {
+        balancePending -= msg.amount;
+      }
+      if (msg?.toAddress === address) {
+        balancePending += msg.amount;
+      }
     }
     console.log('getBalancePendingOfAddress: %s', balancePending);
     return balancePending;
@@ -369,53 +384,80 @@ export class MessengerChainService {
   }
 
   test(): string {
-    const toWalletAddress = "041f752d4466615ee10cd31734ee39ee976764aaaf0d108a4f3eb4980e3c6b2c89f650096b445a233ff610209a5660cd7c5561b831fc6835f97d5f08c82fccf1d2";
+    const toWalletAddress =
+      '041f752d4466615ee10cd31734ee39ee976764aaaf0d108a4f3eb4980e3c6b2c89f650096b445a233ff610209a5660cd7c5561b831fc6835f97d5f08c82fccf1d2';
     // INFO: create a message & sign it with your key
-    const msg = new Message('Hello test, send 0', this.myWalletAddress, toWalletAddress, 0);
-    const msg1 = new Message('Hello test, send 1', this.myWalletAddress, toWalletAddress, 1);
-    const msg2 = new Message('Hello test, send 1', this.myWalletAddress, toWalletAddress, 1);
-    const msg3 = new Message('Hello test, send 100', this.myWalletAddress, toWalletAddress, 100);
-    const msg4 = new Message('Hello test, send 100', "041f752d4466615ee10cd31734ee39ee976764aaaf0d108a4f3eb4980e3c6b2c89f650096b445a233ff610209a5660cd7c5561b831fc6835f97d5f08c82fccf1d2", this.myWalletAddress, 100);
+    const msg = new Message(
+      'Hello test, send 0',
+      this.myWalletAddress,
+      toWalletAddress,
+      0,
+    );
+    const msg1 = new Message(
+      'Hello test, send 1',
+      this.myWalletAddress,
+      toWalletAddress,
+      1,
+    );
+    const msg2 = new Message(
+      'Hello test, send 1',
+      this.myWalletAddress,
+      toWalletAddress,
+      1,
+    );
+    const msg3 = new Message(
+      'Hello test, send 100',
+      this.myWalletAddress,
+      toWalletAddress,
+      100,
+    );
+    const msg4 = new Message(
+      'Hello test, send 100',
+      '041f752d4466615ee10cd31734ee39ee976764aaaf0d108a4f3eb4980e3c6b2c89f650096b445a233ff610209a5660cd7c5561b831fc6835f97d5f08c82fccf1d2',
+      this.myWalletAddress,
+      100,
+    );
 
     try {
       msg.signMessage(this.myKey);
       this.addMessage(msg);
     } catch (error) {
-      console.log(error);      
+      console.log(error);
     }
     try {
       msg1.signMessage(this.myKey);
-      this.addMessage(msg1);        
+      this.addMessage(msg1);
     } catch (error) {
-      console.log(error);      
+      console.log(error);
     }
     try {
       msg2.signMessage(this.myKey);
-      this.addMessage(msg2);        
+      this.addMessage(msg2);
     } catch (error) {
-      console.log(error);      
+      console.log(error);
     }
     try {
       msg3.signMessage(this.myKey);
-      this.addMessage(msg3);        
+      this.addMessage(msg3);
     } catch (error) {
-      console.log(error);      
+      console.log(error);
     }
     try {
       const mySecondKey = ec.keyFromPrivate(
         'bfb17d049b4ee2c9bec3bd93607e255a8c4f2ac85e6c3cdb18b2a66bada36e28',
       );
       // myWalletAddress = this.myKey.getPublic('hex');
-    
+
       msg4.signMessage(mySecondKey);
-      this.addMessage(msg4);        
+      this.addMessage(msg4);
     } catch (error) {
-      console.log(error);      
+      console.log(error);
     }
     this.minePendingMessages(this.myWalletAddress);
     // INFO: uncoment to invalid blockchain validity
     // this.blockchain[0].messages[0].amount = 11;
-    const isBlockchainValid = 'Blockchain validity: ' + this.isBlockchainValid();
+    const isBlockchainValid =
+      'Blockchain validity: ' + this.isBlockchainValid();
 
     return isBlockchainValid;
   }

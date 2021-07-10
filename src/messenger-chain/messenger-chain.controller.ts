@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
 import { AddBlockDto } from './dto/add-block.dto';
+import { CreateMessageSignedDto } from './dto/create-message-signed.dto';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { RegisterNodeDto } from './dto/register-node.dto';
 import { Block } from './entity/block';
@@ -18,6 +19,15 @@ export class MessengerChainController {
   @Post('message')
   addNewMessage(@Body() createMessageDto: CreateMessageDto): Message {
     return this.messengerChainService.addNewMessage(createMessageDto);
+  }
+
+  @Post('message-signed')
+  addNewMessageSigned(
+    @Body() createMessageSignedDto: CreateMessageSignedDto,
+  ): Message {
+    return this.messengerChainService.addNewMessageSigned(
+      createMessageSignedDto,
+    );
   }
 
   @Get('check-chain-validity')

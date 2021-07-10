@@ -11,7 +11,8 @@ export class CreateMessageDto {
   @ApiProperty({
     type: Number,
     description: 'The sender',
-    default: '0471a760b7226e87e15d285795db4925939363feedf2b943f61d5ced178e04c30eed0c6c7265975a698c5594a1b367abd37db45c4abf890ced6053dd1d3e6f5aca',
+    default:
+      '0471a760b7226e87e15d285795db4925939363feedf2b943f61d5ced178e04c30eed0c6c7265975a698c5594a1b367abd37db45c4abf890ced6053dd1d3e6f5aca',
   })
   fromAddress: string;
   @ApiProperty({

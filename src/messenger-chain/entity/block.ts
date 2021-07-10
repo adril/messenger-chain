@@ -40,18 +40,18 @@ export class Block {
     console.log(`Block mined: ${this.hash}`);
   }
 
-    /**
+  /**
    * Validates all the messages inside this block (signature + hash) and
    * returns true if everything checks out. False if the block is invalid.
    *
    * @returns {boolean}
    */
-     hasValidMessages(): boolean {
-      for (const msg of this.messages) {
-        if (!msg?.isValid()) {
-          return false;
-        }
+  hasValidMessages(): boolean {
+    for (const msg of this.messages) {
+      if (!msg?.isValid()) {
+        return false;
       }
-      return true;
     }
+    return true;
+  }
 }
